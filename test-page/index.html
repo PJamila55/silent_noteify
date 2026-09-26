@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Interactive Dashboard</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+    <header>
+        <div class="logo">Interactive Dashboard</div>
+
+        <div class="notif-btn-wrapper">
+            <button id="notif-toggle-btn" class="icon-btn" onclick="toggleNotifPanel()">
+                Notifications
+                <span id="badge" class="badge">0</span>
+            </button>
+
+            <div id="notif-panel" class="notif-panel">
+                <div class="notif-panel-header">
+                    <span>Notification Feed</span>
+                    <button class="clear-btn" onclick="clearNotifs()">Clear All</button>
+                </div>
+                <div id="notif-list" class="notif-list">
+                    <p id="empty-msg" class="empty-msg">No notifications yet.</p>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <main>
+        <h1>5 Buttons / Test</h1>
+        <p class="subtitle">Click any button below to trigger its unique feature. Runs with the Silent Changes Announcer extension + NVDA.</p>
+
+        <div class="shortcut-legend">
+            <span><kbd>Alt</kbd>+<kbd>S</kbd> Check updates</span>
+            <span><kbd>Alt</kbd>+<kbd>M</kbd> Mute/unmute</span>
+            <span><kbd>Alt</kbd>+<kbd>Y</kbd>/<kbd>N</kbd> Flood reply</span>
+            <span><kbd>Alt</kbd>+<kbd>C</kbd> Clear notifs</span>
+            <span><kbd>Alt</kbd>+<kbd>H</kbd> Help</span>
+        </div>
+
+        <div class="button-grid">
+            <div class="card">
+                <h3>1. Enlarge Button</h3>
+                <button id="btn-enlarge" class="action-btn" onclick="toggleEnlarge()">Grow Size</button>
+            </div>
+
+            <div class="card">
+                <h3>2. Information Modal</h3>
+                <button id="btn-info" class="action-btn" onclick="openModal()">Show Info</button>
+            </div>
+
+            <div class="card">
+                <h3>3. Text Popup</h3>
+                <button id="btn-toast" class="action-btn" onclick="triggerToast('Hello i am a text')">Pop Text</button>
+            </div>
+
+            <div class="card">
+                <h3>4. Normal Notifications</h3>
+                <button id="btn-normal-notif" class="action-btn" onclick="addNormalNotifs()">Send 3 Notifs</button>
+            </div>
+
+            <div class="card">
+                <h3>5. INSANE Notif Flood</h3>
+                <button id="btn-insane-notif" class="action-btn" onclick="addInsaneNotifs()">FLOODGATES</button>
+            </div>
+        </div>
+    </main>
+
+    <div id="info-modal" class="modal">
+        <div class="modal-content">
+            <h2>Information Box</h2>
+            <p style="margin-top: 10px; color: #808d9f;">Popup modal test test, javascript</p>
+            <button class="close-modal-btn" onclick="closeModal()">Close</button>
+        </div>
+    </div>
+
+    <div id="toast" class="toast">Hello, test notifications</div>
+
+    <script src="script.js"></script>
+</body>
+</html>
