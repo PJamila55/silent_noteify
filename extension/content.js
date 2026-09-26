@@ -164,17 +164,16 @@
       }
     }
 
-    function processNotifBuffer() {
+        function processNotifBuffer() {
       const items = notifBuffer;
       notifBuffer = [];
       notifWindowTimer = null;
       if (items.length === 0) return;
+      if (autoAnnounceMuted) return; // fully muted: say nothing automatically, check with Alt+S instead
 
       if (items.length < FLOOD_THRESHOLD) {
-        // 1-2 notifications: just say them, if not muted.
-        if (!autoAnnounceMuted) {
-          items.forEach((it) => queuePolite("New notification: " + it.text));
-        }
+        // 1-2 notifications: just say them.
+        items.forEach((it) => queuePolite("New notification: " + it.text));
       } else {
         // 3+ notifications: don't read them out. Ask first.
         pendingFloodItems = items;
