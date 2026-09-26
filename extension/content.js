@@ -1,5 +1,5 @@
 /**
- * Silent Changes Announcer for NVDA
+ * Noteify — Silent Changes Announcer for NVDA
  * -----------------------------------------------------------------------
  * Announces dynamic UI changes on a page to NVDA, with built-in flood
  * protection so a burst of notifications doesn't turn into an
@@ -158,7 +158,7 @@
           // Welcome message: short, not the full summary. Full details wait for Alt+S.
           setTimeout(() => {
             queuePolite(
-              "Silent Changes Announcer ready. " +
+              "Noteify ready. " +
                 elapsedText +
                 " Press Alt+S to check for updates, or Alt+H for all commands."
             );

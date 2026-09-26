@@ -1,9 +1,22 @@
 {
   "manifest_version": 3,
-  "name": "Silent Changes Announcer for NVDA",
+  "name": "Noteify",
   "version": "1.0.0",
   "description": "Announces dynamic on-screen UI changes to NVDA users, with flood protection so a burst of notifications doesn't spam speech. Only activates on pages that match the included test dashboard's structure.",
   "permissions": ["storage"],
+  "icons": {
+    "16": "logo.png",
+    "48": "logo.png",
+    "128": "logo.png"
+  },
+  "action": {
+    "default_icon": {
+      "16": "logo.png",
+      "48": "logo.png",
+      "128": "logo.png"
+    },
+    "default_title": "Noteify"
+  },
   "content_scripts": [
     {
       "matches": ["<all_urls>"],
