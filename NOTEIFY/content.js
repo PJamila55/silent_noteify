@@ -1,6 +1,6 @@
 /**
  * Noteify — Silent Changes Announcer for NVDA
- * BY TEAM : IKEA
+ * MADE BY TEAM : IKEA
  * -----------------------------------------------------------------------
  * Announces dynamic UI changes on a page to NVDA, with built-in flood
  * protection so a burst of notifications doesn't turn into an
@@ -9,8 +9,9 @@
  * KEYBOARD COMMANDS
  *   Alt+S  Check for updates (main command)
  *   Alt+M  Mute / unmute automatic announcements
- *   Alt+Y  Yes, read the flood of notifications (only after a flood prompt)
- *   Alt+N  No, leave the flood alone for now (only after a flood prompt)
+ *   Alt+Y  Yes — read the notification flood, OR read the modal's contents
+ *          (whichever is pending)
+ *   Alt+N  No, leave a notification flood alone for now
  *   Alt+C  Close the info modal if open, and/or clear notifications
  *   Alt+H  Hear the full command list again
  */
@@ -104,6 +105,7 @@
     let elapsedText = "This looks like your first visit.";
     let pendingFloodDecision = false;
     let pendingFloodItems = [];
+    let pendingModalRead = false;
     let clearAvailable = false;
     let clearAvailableTimer = null;
 
@@ -244,6 +246,21 @@
       }
     }
 
+    function handleModalRead() {
+      if (!pendingModalRead) return;
+      pendingModalRead = false;
+      const contentEl = infoModal.querySelector(".modal-content");
+      let text = "Nothing to read.";
+      if (contentEl) {
+        // Read everything in the modal except the close button, so we don't announce "Close".
+        const clone = contentEl.cloneNode(true);
+        const btn = clone.querySelector(".close-modal-btn");
+        if (btn) btn.remove();
+        text = clone.textContent.replace(/\s+/g, " ").trim() || text;
+      }
+      assertiveAnnounce(text + " Press Alt+C to close it.");
+    }
+
     function collectCurrentNotifTexts() {
       const nodes = notifList.querySelectorAll(".notif-item");
       return Array.from(nodes).map((node) => {
@@ -288,8 +305,16 @@
       const isOpen = infoModal.classList.contains("active");
       if (isOpen === modalOpen) return;
       modalOpen = isOpen;
-      if (!autoAnnounceMuted) {
-        queuePolite(isOpen ? "Information modal opened. Press Alt+C to close it." : "Information modal closed.");
+      if (isOpen) {
+        pendingModalRead = true;
+        if (!autoAnnounceMuted) {
+          queuePolite("Information modal opened. Press Alt+Y to hear what's inside, or Alt+C to close it.");
+        }
+      } else {
+        pendingModalRead = false;
+        if (!autoAnnounceMuted) {
+          queuePolite("Information modal closed.");
+        }
       }
     });
     modalObserver.observe(infoModal, { attributes: true, attributeFilter: ["class"] });
@@ -321,7 +346,8 @@
 
       const modalOpenNow = infoModal.classList.contains("active");
       if (modalOpenNow) {
-        parts.push("The information modal is currently open. Press Alt+C to close it.");
+        parts.push("The information modal is currently open. Press Alt+Y to hear what's inside, or Alt+C to close it.");
+        pendingModalRead = true;
       }
 
       const badgeEl = document.getElementById("badge");
@@ -348,7 +374,7 @@
     function handleAltH() {
       assertiveAnnounce(
         "Commands: Alt+S, check for updates. Alt+M, mute or unmute automatic announcements. " +
-          "Alt+Y and Alt+N, respond to a notification flood prompt when one appears. " +
+          "Alt+Y and Alt+N, respond to a notification flood prompt when one appears. Alt+Y also reads out the information modal's contents when one is open. " +
           "Alt+C, close the information modal if it's open, and clear all notifications, available right after you choose to hear a flood. " +
           "Alt+H, hear this list again."
       );
@@ -378,6 +404,9 @@
             if (pendingFloodDecision) {
               e.preventDefault();
               handleFloodYes();
+            } else if (pendingModalRead) {
+              e.preventDefault();
+              handleModalRead();
             }
             break;
           case "n":
