@@ -5,32 +5,12 @@
  * protection so a burst of notifications doesn't turn into an
  * uninterruptible wall of speech.
  *
- * SAFETY GUARD
- * This script only does anything if the page contains the specific
- * elements the test dashboard uses (#notif-list, #toast, #info-modal,
- * #btn-enlarge). On any other page it silently does nothing.
- *
- * HOW ANNOUNCEMENTS REACH NVDA
- * Two offscreen ARIA live regions are created:
- *   - "assertive" region: for things the user directly asked for
- *     (Alt+S, Alt+H, Alt+M, Alt+Y/N replies). These interrupt.
- *   - "polite" region: for automatic events (a toast firing, the button
- *     enlarging, 1-2 notifications arriving). These are queued and
- *     paced out so they never overlap each other or talk over NVDA.
- *
- * WHY THIS DOESN'T FIGHT WITH NVDA
- * MutationObservers only watch the specific elements that change
- * (#notif-list, #btn-enlarge, #info-modal, #toast) - never
- * document.body. That means the live regions this script creates (and
- * updates) can never be picked up as "a page change" and re-announced,
- * which would otherwise cause a feedback loop.
- *
  * KEYBOARD COMMANDS
  *   Alt+S  Check for updates (main command)
  *   Alt+M  Mute / unmute automatic announcements
  *   Alt+Y  Yes, read the flood of notifications (only after a flood prompt)
  *   Alt+N  No, leave the flood alone for now (only after a flood prompt)
- *   Alt+C  Clear all notifications (only available right after Alt+Y)
+ *   Alt+C  Close the info modal if open, and/or clear notifications
  *   Alt+H  Hear the full command list again
  */
 
@@ -40,7 +20,7 @@
   const REQUIRED_IDS = ["notif-list", "toast", "info-modal", "btn-enlarge"];
   const NOTIF_WINDOW_MS = 2000; // how long we wait to batch incoming notifications
   const FLOOD_THRESHOLD = 3; // 1-2 = auto-announce individually, 3+ = ask first
-  const CLEAR_WINDOW_MS = 20000; // how long Alt+C stays armed after a flood read
+  const CLEAR_WINDOW_MS = 20000; // how long Alt+C stays armed for clearing after a flood read
 
   function hasRequiredStructure() {
     return REQUIRED_IDS.every((id) => document.getElementById(id));
@@ -237,16 +217,33 @@
     }
 
     function triggerClear() {
-      if (!clearAvailable) return;
-      const clearBtn = document.querySelector(".clear-btn");
-      if (clearBtn) {
-        clearBtn.click();
-        assertiveAnnounce("Notifications cleared.");
-      } else {
-        assertiveAnnounce("No clear button found on this page.");
+      let didSomething = false;
+
+      if (infoModal.classList.contains("active")) {
+        const closeBtn = infoModal.querySelector(".close-modal-btn");
+        if (closeBtn) {
+          closeBtn.click();
+        } else {
+          infoModal.classList.remove("active");
+        }
+        didSomething = true;
       }
-      clearAvailable = false;
-      if (clearAvailableTimer) clearTimeout(clearAvailableTimer);
+
+      if (clearAvailable) {
+        const clearBtn = document.querySelector(".clear-btn");
+        if (clearBtn) {
+          clearBtn.click();
+        }
+        clearAvailable = false;
+        if (clearAvailableTimer) clearTimeout(clearAvailableTimer);
+        didSomething = true;
+      }
+
+      if (didSomething) {
+        assertiveAnnounce("Cleared.");
+      } else {
+        assertiveAnnounce("Nothing to clear right now.");
+      }
     }
 
     // Watch only #notif-list, never document.body.
@@ -288,7 +285,7 @@
       modalOpen = isOpen;
       stats.modals++;
       if (!autoAnnounceMuted) {
-        queuePolite(isOpen ? "Information modal opened." : "Information modal closed.");
+        queuePolite(isOpen ? "Information modal opened. Press Alt+C to close it." : "Information modal closed.");
       }
     });
     modalObserver.observe(infoModal, { attributes: true, attributeFilter: ["class"] });
@@ -334,7 +331,7 @@
       assertiveAnnounce(
         "Commands: Alt+S, check for updates. Alt+M, mute or unmute automatic announcements. " +
           "Alt+Y and Alt+N, respond to a notification flood prompt when one appears. " +
-          "Alt+C, clear all notifications, available right after you choose to hear a flood. " +
+          "Alt+C, close the information modal if it's open, and clear all notifications, available right after you choose to hear a flood. " +
           "Alt+H, hear this list again."
       );
     }
@@ -372,10 +369,8 @@
             }
             break;
           case "c":
-            if (clearAvailable) {
-              e.preventDefault();
-              triggerClear();
-            }
+            e.preventDefault();
+            triggerClear();
             break;
           case "h":
             e.preventDefault();
