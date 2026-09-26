@@ -1,3 +1,4 @@
+# NOTEIFY
 # Silent Changes Announcer for NVDA
 
 A Chrome extension that announces dynamic UI changes to NVDA screen reader
