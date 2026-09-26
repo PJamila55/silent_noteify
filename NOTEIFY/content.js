@@ -1,5 +1,6 @@
 /**
  * Noteify — Silent Changes Announcer for NVDA
+ * BY TEAM : IKEA
  * -----------------------------------------------------------------------
  * Announces dynamic UI changes on a page to NVDA, with built-in flood
  * protection so a burst of notifications doesn't turn into an
@@ -100,7 +101,6 @@
     // State
     // ---------------------------------------------------------------
     let autoAnnounceMuted = false;
-    let stats = { notifications: 0, enlarges: 0, modals: 0, toasts: 0 };
     let elapsedText = "This looks like your first visit.";
     let pendingFloodDecision = false;
     let pendingFloodItems = [];
@@ -158,13 +158,12 @@
 
     function onNotifAdded(text) {
       notifBuffer.push({ text: text, time: Date.now() });
-      stats.notifications++;
       if (!notifWindowTimer) {
         notifWindowTimer = setTimeout(processNotifBuffer, NOTIF_WINDOW_MS);
       }
     }
 
-        function processNotifBuffer() {
+    function processNotifBuffer() {
       const items = notifBuffer;
       notifBuffer = [];
       notifWindowTimer = null;
@@ -245,6 +244,14 @@
       }
     }
 
+    function collectCurrentNotifTexts() {
+      const nodes = notifList.querySelectorAll(".notif-item");
+      return Array.from(nodes).map((node) => {
+        const textEl = node.querySelector(":scope > div:first-child");
+        return { text: (textEl ? textEl.textContent : node.textContent).trim() };
+      });
+    }
+
     // Watch only #notif-list, never document.body.
     const notifObserver = new MutationObserver((mutations) => {
       mutations.forEach((m) => {
@@ -267,7 +274,6 @@
       const isExpanded = btnEnlarge.classList.contains("expanded");
       if (isExpanded === wasExpanded) return;
       wasExpanded = isExpanded;
-      stats.enlarges++;
       if (!autoAnnounceMuted) {
         queuePolite(isExpanded ? "Button enlarged." : "Button back to normal size.");
       }
@@ -282,7 +288,6 @@
       const isOpen = infoModal.classList.contains("active");
       if (isOpen === modalOpen) return;
       modalOpen = isOpen;
-      stats.modals++;
       if (!autoAnnounceMuted) {
         queuePolite(isOpen ? "Information modal opened. Press Alt+C to close it." : "Information modal closed.");
       }
@@ -300,7 +305,6 @@
       }
       toastActive = isActive;
       if (isActive) {
-        stats.toasts++;
         if (!autoAnnounceMuted) {
           queuePolite("Message: " + toast.textContent.trim());
         }
@@ -309,21 +313,36 @@
     toastObserver.observe(toast, { attributes: true, attributeFilter: ["class"] });
 
     // ---------------------------------------------------------------
-    // Alt+S summary
+    // Alt+S summary — reports current on-screen state, not history
     // ---------------------------------------------------------------
     function handleAltS() {
-      const plural = (n) => (n === 1 ? "" : "s");
-      const summary =
-        elapsedText +
-        " Since your last check: " +
-        stats.notifications + " notification" + plural(stats.notifications) + ", " +
-        stats.enlarges + " size change" + plural(stats.enlarges) + ", " +
-        stats.modals + " modal event" + plural(stats.modals) + ", and " +
-        stats.toasts + " pop up message" + plural(stats.toasts) + ". " +
-        "Automatic announcements are currently " + (autoAnnounceMuted ? "muted" : "on") + ". " +
-        "Press Alt+M to toggle, or Alt+H for the full command list.";
-      assertiveAnnounce(summary);
-      stats = { notifications: 0, enlarges: 0, modals: 0, toasts: 0 };
+      const parts = [];
+      parts.push(elapsedText);
+
+      const modalOpenNow = infoModal.classList.contains("active");
+      if (modalOpenNow) {
+        parts.push("The information modal is currently open. Press Alt+C to close it.");
+      }
+
+      const badgeEl = document.getElementById("badge");
+      const unread = badgeEl ? parseInt(badgeEl.textContent, 10) || 0 : 0;
+      if (unread > 0) {
+        parts.push(
+          unread +
+            " unread notification" + (unread === 1 ? "" : "s") +
+            ". Press Alt+Y to hear them, Alt+N to leave them, or Alt+C to clear them."
+        );
+        pendingFloodItems = collectCurrentNotifTexts();
+        pendingFloodDecision = true;
+        armClearAvailable();
+      }
+
+      if (!modalOpenNow && unread === 0) {
+        parts.push("No modal open, no unread notifications.");
+      }
+
+      parts.push("Automatic announcements are currently " + (autoAnnounceMuted ? "muted" : "on") + ".");
+      assertiveAnnounce(parts.join(" "));
     }
 
     function handleAltH() {
